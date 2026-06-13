@@ -1,6 +1,66 @@
 version: '3.8'
 
 services:
+  # ----------------------------------------------------
+  # Databases
+  # ----------------------------------------------------
+  user_db:
+    image: mysql:8
+    container_name: user_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root2022
+      MYSQL_DATABASE: user_service_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - user_db_data:/var/lib/mysql
+    networks:
+      - microservice-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  order_db:
+    image: mysql:8
+    container_name: order_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root2022
+      MYSQL_DATABASE: order_service_db
+    ports:
+      - "3308:3306"
+    volumes:
+      - order_db_data:/var/lib/mysql
+    networks:
+      - microservice-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  notification_db:
+    image: mysql:8
+    container_name: notification_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root2022
+      MYSQL_DATABASE: notification_service_db
+    ports:
+      - "3309:3306"
+    volumes:
+      - notification_db_data:/var/lib/mysql
+    networks:
+      - microservice-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------------
+  # Microservices
+  # ----------------------------------------------------
   user-service:
     build:
       context: ../userservice
@@ -9,12 +69,15 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3306/user_service_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_URL=jdbc:mysql://user_db:3306/user_service_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root2022
     networks:
       - microservice-network
     restart: always
+    depends_on:
+      user_db:
+        condition: service_healthy
 
   order-service:
     build:
@@ -24,12 +87,21 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3306/order_service_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_URL=jdbc:mysql://order_db:3306/order_service_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root2022
+      - USER_SERVICE_URL=http://user-service:8080
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8082
     networks:
       - microservice-network
     restart: always
+    depends_on:
+      order_db:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
 
   notification-service:
     build:
@@ -39,12 +111,15 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3306/notification_service_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_URL=jdbc:mysql://notification_db:3306/notification_service_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root2022
     networks:
       - microservice-network
     restart: always
+    depends_on:
+      notification_db:
+        condition: service_healthy
 
   api-gateway:
     build:
@@ -69,3 +144,8 @@ services:
 networks:
   microservice-network:
     driver: bridge
+
+volumes:
+  user_db_data:
+  order_db_data:
+  notification_db_data:
