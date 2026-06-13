@@ -3,7 +3,7 @@ version: '3.8'
 services:
   user-service:
     build:
-      context: ./userservice
+      context: ../userservice
       dockerfile: Dockerfile
     container_name: user-service
     ports:
@@ -18,7 +18,7 @@ services:
 
   order-service:
     build:
-      context: ./orderservice
+      context: ../orderservice
       dockerfile: Dockerfile
     container_name: order-service
     ports:
@@ -33,7 +33,7 @@ services:
 
   notification-service:
     build:
-      context: ./notificaitonservice
+      context: ../notificaitonservice
       dockerfile: Dockerfile
     container_name: notification-service
     ports:
@@ -48,7 +48,7 @@ services:
 
   api-gateway:
     build:
-      context: ./gateway
+      context: ../gateway
       dockerfile: Dockerfile
     container_name: api-gateway
     ports:
