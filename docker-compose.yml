@@ -160,6 +160,24 @@ services:
       timeout: 5s
       retries: 5
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ../grafana/provisioning:/etc/grafana/provisioning
+      - ../grafana/dashboards:/etc/grafana/dashboards
+    networks:
+      - microservice-network
+    depends_on:
+      - prometheus
+    restart: always
+
 networks:
   microservice-network:
     driver: bridge
@@ -168,3 +186,4 @@ volumes:
   user_db_data:
   order_db_data:
   notification_db_data:
+  grafana-storage:
