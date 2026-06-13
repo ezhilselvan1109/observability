@@ -1,9 +1,7 @@
 version: '3.8'
 
 services:
-  # ----------------------------------------------------
   # Databases
-  # ----------------------------------------------------
   user_db:
     image: mysql:8
     container_name: user_db
@@ -58,9 +56,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ----------------------------------------------------
   # Microservices
-  # ----------------------------------------------------
   user-service:
     build:
       context: ../userservice
@@ -69,9 +65,11 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:mysql://user_db:3306/user_service_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root2022
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318/v1/traces
     networks:
       - microservice-network
     restart: always
@@ -87,11 +85,13 @@ services:
     ports:
       - "8081:8081"
     environment:
+      - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:mysql://order_db:3306/order_service_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root2022
       - USER_SERVICE_URL=http://user-service:8080
       - NOTIFICATION_SERVICE_URL=http://notification-service:8082
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318/v1/traces
     networks:
       - microservice-network
     restart: always
@@ -111,9 +111,11 @@ services:
     ports:
       - "8082:8082"
     environment:
+      - SPRING_PROFILES_ACTIVE=docker
       - SPRING_DATASOURCE_URL=jdbc:mysql://notification_db:3306/notification_service_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root2022
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318/v1/traces
     networks:
       - microservice-network
     restart: always
@@ -129,10 +131,12 @@ services:
     ports:
       - "8083:8083"
     environment:
+      - SPRING_PROFILES_ACTIVE=docker
       - SERVER_PORT=8083
       - USER_SERVICE_URL=http://user-service:8080
       - ORDER_SERVICE_URL=http://order-service:8081
       - NOTIFICATION_SERVICE_URL=http://notification-service:8082
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318/v1/traces
     networks:
       - microservice-network
     restart: always
@@ -141,9 +145,7 @@ services:
       - order-service
       - notification-service
 
-  # ----------------------------------------------------
   # Observability
-  # ----------------------------------------------------
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -176,6 +178,19 @@ services:
       - microservice-network
     depends_on:
       - prometheus
+    restart: always
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - microservice-network
     restart: always
 
 networks:
